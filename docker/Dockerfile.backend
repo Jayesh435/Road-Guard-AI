@@ -1,0 +1,32 @@
+# ── RoadGuard AI – Backend Dockerfile ──────────────────────────────────────
+# Multi-stage build for a lean production Node.js image.
+
+FROM node:20-alpine AS builder
+
+WORKDIR /app
+
+# Install dependencies
+COPY package*.json ./
+RUN npm ci --omit=dev
+
+# Copy source
+COPY . .
+
+# ── Production stage ────────────────────────────────────────────────────────
+FROM node:20-alpine
+
+WORKDIR /app
+
+# Create non-root user for security
+RUN addgroup -S appgroup && adduser -S appuser -G appgroup
+
+COPY --from=builder /app .
+
+# Ensure uploads directory exists and is writable
+RUN mkdir -p uploads && chown -R appuser:appgroup /app
+
+USER appuser
+
+EXPOSE 5000
+
+CMD ["node", "server.js"]
