@@ -1,0 +1,31 @@
+# ── RoadGuard AI – AI Service Dockerfile ───────────────────────────────────
+# Python 3.11 slim image with FastAPI + YOLOv8 (CPU-only variant).
+# For GPU support change the base image to pytorch/pytorch:2.x-cuda12.x-...
+
+FROM python:3.11-slim
+
+# Install system deps needed by OpenCV
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    libglib2.0-0 \
+    libsm6 \
+    libxext6 \
+    libxrender-dev \
+    libgomp1 \
+    && rm -rf /var/lib/apt/lists/*
+
+WORKDIR /app
+
+# Install Python dependencies
+COPY requirements.txt .
+RUN pip install --no-cache-dir -r requirements.txt
+
+# Copy source code
+COPY . .
+
+# Ensure model directory exists (weights are mounted or downloaded separately)
+RUN mkdir -p model
+
+EXPOSE 8000
+
+# Start FastAPI with Uvicorn
+CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000", "--workers", "2"]
